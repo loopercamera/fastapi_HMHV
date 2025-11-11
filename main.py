@@ -65,16 +65,18 @@ def get_coordinates():
                    ST_X(geom) AS lon,
                    created_at
             FROM user_positions
-            ORDER BY id DESC;
+            ORDER BY created_at DESC
+            LIMIT 1;
         """
         cur.execute(query)
-        rows = cur.fetchall()
+        row = cur.fetchone()
         cur.close()
         conn.close()
-        return rows
+        return row
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail="Database query error")
+
 
 @app.get("/api/info/db")
 def get_info():
