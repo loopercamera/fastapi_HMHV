@@ -5,20 +5,17 @@ from psycopg2.extras import RealDictCursor
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 
 load_dotenv()
 
 app = FastAPI()
 
 # Database connection
+# Database connection using DATABASE_URL
 def get_connection():
-    return psycopg2.connect(
-        host=os.getenv("PGHOST"),
-        port=os.getenv("PGPORT"),
-        user=os.getenv("PGUSER"),
-        password=os.getenv("PGPASSWORD"),
-        database=os.getenv("PGDATABASE")
-    )
+    return psycopg2.connect(os.getenv("DATABASE_URL"))
+
 
 # Data model for POST
 class Coordinates(BaseModel):
@@ -91,6 +88,8 @@ def get_info():
         print(e)
         raise HTTPException(status_code=500, detail="API information retrieval failed")
     
+
+
 @app.get("/api/debug/db")
 def debug_db():
     conn = get_connection()
@@ -99,4 +98,25 @@ def debug_db():
     result = cur.fetchone()
     cur.close()
     conn.close()
-    return {"database": result[0], "schema": result[1]}
+
+    # Parse DATABASE_URL and mask password
+    db_url = os.getenv("DATABASE_URL")
+    parsed = urlparse(db_url)
+    safe_url = f"{parsed.scheme}://{parsed.username}:***@{parsed.hostname}:{parsed.port}{parsed.path}"
+
+    return {
+        "database": result[0],
+        "schema": result[1],
+        "connection_url": safe_url
+    }
+
+
+@app.get("/api/coordinates/sara")
+def get_coordinates():
+    return {
+        "id": 16,
+        "lat": 47.46385684116505,
+        "lon": 8.39244934396616,
+        "created_at": "2025-11-08T10:08:44.306761"
+    }
+
