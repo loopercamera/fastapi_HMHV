@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -21,6 +22,15 @@ def get_connection():
 class Coordinates(BaseModel):
     lat: float
     lon: float
+    
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or specify list like ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.post("/api/coordinates")
 def add_coordinates(coords: Coordinates):
