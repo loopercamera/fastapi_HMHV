@@ -22,6 +22,13 @@ def get_connection():
 class Coordinates(BaseModel):
     lat: float
     lon: float
+
+class user_Coordinates(BaseModel):
+    lat: float
+    lon: float
+    user_name: str
+    user_function: str
+
     
 app.add_middleware(
     CORSMiddleware,
@@ -134,7 +141,7 @@ def get_coordinates():
 
 
 @app.post("/api/child/coordinates")
-def add_coordinates(coords: Coordinates):
+def add_coordinates(coords: user_Coordinates):
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
