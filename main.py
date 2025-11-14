@@ -132,3 +132,68 @@ def get_coordinates():
         "created_at": "2025-11-08T10:08:44.306761"
     }
 
+
+@app.post("/api/child/coordinates")
+def add_coordinates(coords: Coordinates):
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            INSERT INTO users (user_name, user_function, geom, created_at)
+            VALUES (%s, %s, ST_SetSRID(ST_MakePoint(%s, %s), 4326), NOW())
+            RETURNING id;
+        """
+
+        cur.execute(
+            query,
+            (
+                coords.user_name,
+                coords.user_function,
+                coords.lon,
+                coords.lat,
+            ),
+        )
+
+        new_id = cur.fetchone()["id"]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "id": new_id}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/child/coordinates")
+def get_coordinates():
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT
+                id,
+                user_name,
+                user_function,
+                ST_AsGeoJSON(geom) AS geom,
+                created_at
+            FROM users
+            ORDER BY created_at DESC;
+        """
+
+        cur.execute(query)
+        data = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return {"success": True, "data": data}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
