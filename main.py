@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 load_dotenv()
 
@@ -199,6 +200,72 @@ def get_coordinates():
         conn.close()
 
         return {"success": True, "data": data}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/api/outgoing_rayon/")
+def get_outgoing_rayon():
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT
+                id,
+                name,
+                ST_AsGeoJSON(geom) AS geom,
+                created_at
+            FROM outgoing_rayon;
+        """
+
+        cur.execute(query)
+        data = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return {"success": True, "data": data}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import BaseModel
+from typing import Any
+
+class OutgoingRayonCreate(BaseModel):
+    name: str
+    geom: Any   # Raw GeoJSON
+
+
+@app.post("/api/outgoing_rayon/")
+def create_outgoing_rayon(payload: OutgoingRayonCreate):
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            INSERT INTO outgoing_rayon (name, geom)
+            VALUES (%s, ST_SetSRID(ST_GeomFromGeoJSON(%s), 4326))
+            RETURNING id, name, ST_AsGeoJSON(geom) AS geom, created_at;
+        """
+
+        cur.execute(
+            query,
+            (payload.name, json.dumps(payload.geom))
+        )
+
+        new_row = cur.fetchone()
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        return {"success": True, "data": new_row}
 
     except Exception as e:
         import traceback
